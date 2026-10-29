@@ -64,7 +64,57 @@ public class OAuthFlowHandler {
      * @return true if login was successful, false otherwise
      */
 	public boolean handleOAuthLogin() {
+
 		logger.info("Starting OAuth flow");
+		logger.info(
+			"JWT FLAG="
+			+ appConfig.getBoolean(
+				AppConfig.PROP_OAUTH_USE_JWT));
+				
+		logger.info(
+			"JWT FLAG="
+			+ appConfig.getBoolean(
+				AppConfig.PROP_OAUTH_USE_JWT));
+
+		logger.info(
+			"JWT USERNAME="
+			+ appConfig.getString(
+				AppConfig.PROP_OAUTH_JWT_USERNAME));
+
+		logger.info(
+			"JWT KEY FILE="
+			+ appConfig.getString(
+				AppConfig.PROP_OAUTH_JWT_PRIVATE_KEY));			
+				
+		// --- NEW: JWT Bearer short-circuit for unattended / batch use ---
+		if (appConfig.getBoolean(AppConfig.PROP_OAUTH_USE_JWT)) {
+			logger.info("JWT Bearer flow requested – skipping browser/PKCE");
+			appConfig.setLastOAuthFlow("JWT Bearer");
+
+			try {
+				if (controller != null && controller.login()) {
+					controller.saveConfig();
+					if (!AppUtil.isRunningInBatchMode()) {
+						Display.getDefault().asyncExec(
+							() -> controller.updateLoaderWindowTitleAndCacheUserInfoForTheSession());
+					}
+					if (shouldRunLoginButtonEnabler()) {
+						Display.getDefault().asyncExec(loginButtonEnabler);
+					}
+					return true;
+				}
+			} catch (Exception ex) {
+				logger.error("JWT Bearer login failed", ex);
+				if (statusConsumer != null) {
+					statusConsumer.accept("JWT Bearer authentication failed: " + ex.getMessage());
+				}
+			}
+			if (shouldRunLoginButtonEnabler()) {
+				Display.getDefault().asyncExec(loginButtonEnabler);
+			}
+			return false;
+		}
+		// --- END NEW ---		
 		appConfig.setLastOAuthFlow("PKCE");
 
 		String refreshToken =

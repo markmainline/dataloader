@@ -51,6 +51,7 @@ import com.sforce.soap.partner.fault.UnexpectedErrorFault;
 import com.sforce.ws.ConnectionException;
 import com.sforce.ws.ConnectorConfig;
 import com.sforce.ws.SessionRenewer;
+import com.salesforce.dataloader.util.JwtBearerFlow;
 
 import org.apache.logging.log4j.Logger;
 import com.salesforce.dataloader.util.DLLogManager;
@@ -204,7 +205,48 @@ public class LoginClient extends ClientBase<PartnerConnection> {
         final PartnerConnection conn = Connector.newConnection(cc);
         // identify the client as dataloader
         conn.setCallOptions(ClientBase.getClientName(this.appConfig), null);
+		logger.info(
+			"JWT FLAG="
+			+ appConfig.getBoolean(
+			AppConfig.PROP_OAUTH_USE_JWT));
 		
+		logger.info(
+			"JWT USERNAME="
+			+ appConfig.getString(
+				AppConfig.PROP_OAUTH_JWT_USERNAME));	
+
+		logger.info(
+			"JWT KEY FILE="
+			+ appConfig.getString(
+			AppConfig.PROP_OAUTH_JWT_PRIVATE_KEY));
+			
+
+		// --- NEW: JWT Bearer path ---
+		if (appConfig.getBoolean(AppConfig.PROP_OAUTH_USE_JWT)) {
+			try {
+				logger.info("USING JWT BEARER PATH");
+				JwtBearerFlow jwtFlow = new JwtBearerFlow(appConfig);
+				JwtBearerFlow.TokenResponse tokens = jwtFlow.obtainAccessToken();
+
+				if (tokens != null && tokens.accessToken != null) {
+					// Re-use the existing session-setup method
+					setConfiguredSessionId(conn, tokens.accessToken, null);
+
+					// Optionally store instance URL if returned
+					if (tokens.instanceUrl != null) {
+						appConfig.setValue(AppConfig.PROP_OAUTH_INSTANCE_URL, tokens.instanceUrl);
+						appConfig.markDirty();
+						appConfig.save();
+					}
+					logger.info("JWT authentication succeeded");
+					return true;
+				}
+			} catch (Exception ex) {
+				logger.error("JWT Bearer authentication failed", ex);
+				// fall through or rethrow according to your preference
+			}
+		}
+		// --- END NEW ---
 		
 		try {
 
@@ -286,7 +328,12 @@ public class LoginClient extends ClientBase<PartnerConnection> {
 
     private void setConfiguredSessionId(PartnerConnection conn, String sessionId, GetUserInfoResult userInfo) throws ConnectionException {
         String flowType = "unknown";
-        if (appConfig.getString(AppConfig.PROP_OAUTH_ACCESSTOKEN) != null && appConfig.getString(AppConfig.PROP_OAUTH_ACCESSTOKEN).trim().length() > 0) {
+		   // --- NEW: recognise JWT Bearer ---
+		if ("JWT Bearer".equals(appConfig.getLastOAuthFlow())) {
+			flowType = "JWT Bearer";
+		}
+        // --- END NEW ---
+		else if (appConfig.getString(AppConfig.PROP_OAUTH_ACCESSTOKEN) != null && appConfig.getString(AppConfig.PROP_OAUTH_ACCESSTOKEN).trim().length() > 0) {
             String lastFlow = appConfig.getLastOAuthFlow();
             if (lastFlow != null) {
                 flowType = "OAuth " + lastFlow + " Flow";

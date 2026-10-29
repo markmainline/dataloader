@@ -422,6 +422,10 @@ public class AppConfig {
     public static final String PROP_DAO_READ_PREPROCESSOR_SCRIPT = PILOT_PROPERTY_PREFIX + "dataAccess.read.preProcessorScript";
     public static final String PROP_DAO_WRITE_POSTPROCESSOR_SCRIPT = PILOT_PROPERTY_PREFIX + "dataAccess.write.postProcessorScript";
 */
+	public static final String PROP_OAUTH_USE_JWT          = "sfdc.oauth.useJwt";
+	public static final String PROP_OAUTH_JWT_PRIVATE_KEY  = "sfdc.oauth.jwt.privateKeyFile";
+	public static final String PROP_OAUTH_JWT_USERNAME     = "sfdc.oauth.jwt.username";
+	
     /*
      * ===============================
      * End of config properties
