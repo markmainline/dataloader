@@ -443,28 +443,6 @@ public class OAuthServerFlow {
 				appConfig,
 				tokenUrl,
 				params.toArray(new BasicNameValuePair[0]));
-				
-		logger.info(
-			"AUTH ENDPOINT="
-			+ appConfig.getAuthEndpointForCurrentEnv());
-
-		logger.info(
-			"TOKEN URL="
-			+ tokenUrl);
-
-		logger.info(
-			"CLIENT ID="
-			+ clientId);
-
-		logger.info(
-			"CLIENT SECRET LENGTH="
-			+ (clientSecret == null ? 0 : clientSecret.length()));
-
-		logger.info(
-			"REFRESH TOKEN="
-			+ refreshToken);
-
-
 
 		client.post();
 
@@ -476,8 +454,6 @@ public class OAuthServerFlow {
 
 		Map<?, ?> response =
 			parseJsonResponse(client.getInput());
-
-		logger.info("REFRESH RESPONSE=" + response);
 
 		String accessToken = (String) response.get("access_token");
 
@@ -503,19 +479,8 @@ public class OAuthServerFlow {
 			appConfig.save();
 
 			logger.info(
-				"TOKEN BEING WRITTEN="
-				+ newRefreshToken
-			);
-
-			logger.info(
 				"Updated refresh token saved to config");
 			
-			logger.info(
-				"REFRESH TOKEN AFTER SAVE="
-				+ appConfig.getString(
-					AppConfig.PROP_OAUTH_REFRESHTOKEN
-				)
-			);
 		}
 
 		return accessToken;
